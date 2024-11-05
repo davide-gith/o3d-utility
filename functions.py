@@ -332,8 +332,13 @@ def create_aabb(object_3d: Union[o3d.geometry.PointCloud, o3d.geometry.TriangleM
     :param object_3d: point cloud or mesh
     :return: aabb of the point cloud """
 
-    vertices = np.array(object_3d.vertices)
-
+    if isinstance(object_3d, o3d.geometry.PointCloud):
+        vertices = np.asarray(object_3d.points)
+    elif isinstance(object_3d, o3d.geometry.TriangleMesh):
+        vertices = np.asarray(object_3d.vertices)
+    else:
+        raise TypeError("Input must be either a PointCloud or TriangleMesh.")
+      
     max_x = np.max(vertices[:, 0])  # max on x-axis
     max_y = np.max(vertices[:, 1])  # max on y-axis
     max_z = np.max(vertices[:, 2])  # max on z-axis
