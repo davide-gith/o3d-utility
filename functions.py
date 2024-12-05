@@ -328,12 +328,13 @@ def a_star_geodesic(mesh: o3d.geometry.TriangleMesh, start_idx: int, terget_idx:
     return []
 
 
-def compute_vertex_adj(mesh: o3d.geometry.TriangleMesh, level: int=1) -> list[list[int]]:
+def compute_vertex_adj(mesh: o3d.geometry.TriangleMesh, level: int = 1, tree: bool = False) -> list[list[int]]:
     """ Given a 3d mesh this function computes the vertex adjacency list by levels.
-    If the level is 1 you will get the neighbors of each point, otherwise for levels greater than 1 you will have
-    neighbors excluding points from previous levels.
+    If the level is 1 you will get the neighbors of each point, otherwise, for levels greater than 1, if tree is false
+    you will have neighbors excluding points from previous levels and if tree is true you have all the neighbors
     :param mesh: 3d mesh
     :param level: level to compute adjacency list
+    :param tree: param that decides if you want all the neighbors
     :return: vertex adjacency list """
 
     if level < 1:
@@ -346,7 +347,6 @@ def compute_vertex_adj(mesh: o3d.geometry.TriangleMesh, level: int=1) -> list[li
     if level == 1:
         return [list(adj_mesh[idx]) for idx in range(len(adj_mesh))]
 
-
     # Compute adjacency for levels > 1
     result_adj = []
     for idx in range(len(adj_mesh)):
@@ -355,12 +355,20 @@ def compute_vertex_adj(mesh: o3d.geometry.TriangleMesh, level: int=1) -> list[li
 
         # Iterate until the desired level
         for _ in range(1, level):
-            next_set = set(
-                neighbor
-                for vertex in current_set
-                for neighbor in adj_mesh[vertex]
-                if neighbor not in prev_set and neighbor not in current_set
-            )
+            if tree:
+                next_set = set(
+                    neighbor
+                    for vertex in current_set
+                    for neighbor in adj_mesh[vertex]
+                    if neighbor is not idx
+                )
+            else:
+                next_set = set(
+                    neighbor
+                    for vertex in current_set
+                    for neighbor in adj_mesh[vertex]
+                    if neighbor not in prev_set and neighbor not in current_set
+                )
             # Update
             prev_set.update(current_set)
             current_set = next_set
