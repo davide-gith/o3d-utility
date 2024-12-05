@@ -21,6 +21,7 @@ rot_matrix_inverse = np.array([[1, 0, 0, 0],
                                [0, np.sin(-angle90), np.cos(-angle90), 0],
                                [0, 0, 0, 1]])
 
+
 # --------------------------------------- COLORS ---------------------------------------
 YELLOW = [1.0, 1.0, 0.0]
 ORANGE = [1.0, 0.5, 0.0]
@@ -327,6 +328,49 @@ def a_star_geodesic(mesh: o3d.geometry.TriangleMesh, start_idx: int, terget_idx:
     return []
 
 
+def compute_vertex_adj(mesh: o3d.geometry.TriangleMesh, level: int=1) -> list[list[int]]:
+    """ Given a 3d mesh this function computes the vertex adjacency list by levels.
+    If the level is 1 you will get the neighbors of each point, otherwise for levels greater than 1 you will have
+    neighbors excluding points from previous levels.
+    :param mesh: 3d mesh
+    :param level: level to compute adjacency list
+    :return: vertex adjacency list """
+
+    if level < 1:
+        raise ValueError("Level musts be greater or equals than 0.")
+
+    mesh.compute_adjacency_list()
+    adj_mesh = list(mesh.adjacency_list)
+
+    # Compute adjacency for level = 1
+    if level == 1:
+        return [list(adj_mesh[idx]) for idx in range(len(adj_mesh))]
+
+
+    # Compute adjacency for levels > 1
+    result_adj = []
+    for idx in range(len(adj_mesh)):
+        prev_set = {idx}  # Vertices from previous levels
+        current_set = set(adj_mesh[idx])  # Immediate neighbors
+
+        # Iterate until the desired level
+        for _ in range(1, level):
+            next_set = set(
+                neighbor
+                for vertex in current_set
+                for neighbor in adj_mesh[vertex]
+                if neighbor not in prev_set and neighbor not in current_set
+            )
+            # Update
+            prev_set.update(current_set)
+            current_set = next_set
+
+        # Collect neighbors at the specified level
+        result_adj.append(list(current_set))
+
+    return result_adj
+
+
 # --------------------------------------- BOUNDING VOLUMS ---------------------------------------
 def create_aabb(object_3d: Union[o3d.geometry.PointCloud, o3d.geometry.TriangleMesh]) -> o3d.geometry.LineSet:
     """ Given a point cloud or a mesh this function computes the aabb of the 3d object
@@ -375,46 +419,3 @@ def create_obb(object_3d: Union[o3d.geometry.PointCloud, o3d.geometry.TriangleMe
     obb.color = BLUE
 
     return obb
-
-
-def compute_vertex_adj(mesh: o3d.geometry.TriangleMesh, level: int=1) -> list[list[int]]:
-    """ Given a 3d mesh this function computes the vertex adjacency list by levels.
-    If the level is 1 you will get the neighbors of each point, otherwise for levels greater than 1 you will have
-    neighbors excluding points from previous levels.
-    :param mesh: 3d mesh
-    :param level: level to compute adjacency list
-    :return: vertex adjacency list """
-
-    if level < 1:
-        raise ValueError("Level musts be greater or equals than 0.")
-
-    mesh.compute_adjacency_list()
-    adj_mesh = list(mesh.adjacency_list)
-
-    # Compute adjacency for level = 1
-    if level == 1:
-        return [list(adj_mesh[idx]) for idx in range(len(adj_mesh))]
-
-
-    # Compute adjacency for levels > 1
-    result_adj = []
-    for idx in range(len(adj_mesh)):
-        prev_set = {idx}  # Vertices from previous levels
-        current_set = set(adj_mesh[idx])  # Immediate neighbors
-
-        # Iterate until the desired level
-        for _ in range(1, level):
-            next_set = set(
-                neighbor
-                for vertex in current_set
-                for neighbor in adj_mesh[vertex]
-                if neighbor not in prev_set and neighbor not in current_set
-            )
-            # Update
-            prev_set.update(current_set)
-            current_set = next_set
-
-        # Collect neighbors at the specified level
-        result_adj.append(list(current_set))
-
-    return result_adj
